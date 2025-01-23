@@ -2,7 +2,7 @@ def secret = 'ssh-global'
 def server = 'team1@103.127.139.123'
 def directory = 'wayshub-backend'
 def branch = 'main'
-def image = 'daffamusyafa/wayshub-b22-be:latest'
+def image = 'daffamusyafa/wayshub-be-b22:latest'
 
 pipeline {
     agent any
@@ -11,7 +11,7 @@ pipeline {
             steps{
                 sshagent([secret]){
                     sh """ssh -o StrictHostKeyChecking=no ${server} << EOF
-                    cd jenkins/${directory}
+                    cd backend/${directory}
                     git pull origin ${branch}
                     exit
                     EOF"""
@@ -22,7 +22,7 @@ pipeline {
             steps{
                 sshagent([secret]){
                     sh """ssh -o StrictHostKeyChecking=no ${server} << EOF
-                    cd jenkins/${directory}
+                    cd backend/${directory}
                     docker build --no-cache -t ${image} .
                     exit
                     EOF"""
@@ -33,7 +33,7 @@ pipeline {
             steps{
                 sshagent([secret]){
                     sh """ssh -o StrictHostKeyChecking=no ${server} << EOF
-                    cd jenkins/${directory}
+                    cd backend/${directory}
                     docker compose down
                     docker compose up -d
                     exit
