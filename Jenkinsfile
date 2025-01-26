@@ -51,7 +51,7 @@ pipeline {
                     sonar-scanner \
                     -Dsonar.projectKey=wayshub-backend \
                     -Dsonar.sources=./ \
-                    -Dsonar.host.url=http://localhost:9000 \ // Sesuaikan dengan URL server SonarQube Anda
+                    -Dsonar.host.url=http://localhost:9000 // Sesuaikan dengan URL server SonarQube Anda
                     -Dsonar.login=YOUR_TOKEN_HERE
                     """
                 }
