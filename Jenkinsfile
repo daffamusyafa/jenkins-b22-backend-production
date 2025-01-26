@@ -8,14 +8,16 @@ def discordWebhook = 'https://discord.com/api/webhooks/1328944292546482177/BSr4C
 pipeline {
     agent any
     stages {
-        stage ('Pulling New Code') {
+        stage('Pulling New Code') {
             steps {
                 sshagent([secret]) {
-                    sh """ssh -o StrictHostKeyChecking=no ${server} << EOF
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${server} << EOF
                     cd backend/${directory}
                     git pull origin ${branch}
                     exit
-                    EOF"""
+                    EOF
+                    """
                 }
                 sh """
                 curl -X POST -H "Content-Type: application/json" \
@@ -24,14 +26,16 @@ pipeline {
                 """
             }
         }
-        stage ('Build Process') {
+        stage('Build Process') {
             steps {
                 sshagent([secret]) {
-                    sh """ssh -o StrictHostKeyChecking=no ${server} << EOF
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${server} << EOF
                     cd backend/${directory}
                     docker build --no-cache -t ${image} .
                     exit
-                    EOF"""
+                    EOF
+                    """
                 }
                 sh """
                 curl -X POST -H "Content-Type: application/json" \
@@ -39,16 +43,48 @@ pipeline {
                 ${discordWebhook}
                 """
             }
-        }    
-        stage ('Deploy') {
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') { // Ganti 'SonarQube' dengan nama server yang dikonfigurasi di Jenkins
+                    sh """
+                    sonar-scanner \
+                    -Dsonar.projectKey=wayshub-backend \
+                    -Dsonar.sources=./ \
+                    -Dsonar.host.url=http://localhost:9000 \ // Sesuaikan dengan URL server SonarQube Anda
+                    -Dsonar.login=YOUR_TOKEN_HERE
+                    """
+                }
+                sh """
+                curl -X POST -H "Content-Type: application/json" \
+                -d '{"content": "✅ Stage: SonarQube Analysis berhasil."}' \
+                ${discordWebhook}
+                """
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 1, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+                sh """
+                curl -X POST -H "Content-Type: application/json" \
+                -d '{"content": "✅ Quality Gate passed! Kode Anda sudah memenuhi standar kualitas."}' \
+                ${discordWebhook}
+                """
+            }
+        }
+        stage('Deploy') {
             steps {
                 sshagent([secret]) {
-                    sh """ssh -o StrictHostKeyChecking=no ${server} << EOF
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${server} << EOF
                     cd backend/${directory}
                     docker compose down
                     docker compose up -d
                     exit
-                    EOF"""
+                    EOF
+                    """
                 }
                 sh """
                 curl -X POST -H "Content-Type: application/json" \
