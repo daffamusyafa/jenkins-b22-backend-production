@@ -50,23 +50,26 @@ pipeline {
                     sh """
                     ssh -o StrictHostKeyChecking=no ${server} << EOF
                     cd backend/${directory}
-                    trivy image ${image}
+                    /snap/bin/trivy image --exit-code 1 --severity HIGH,CRITICAL ${image}
                     exit
                     EOF
                     """
                 }
-                sh """
-                curl -X POST -H "Content-Type: application/json" \
-                -d '{"content": "✅ Stage: Trivy Scan berhasil. Tidak ditemukan vulnerability kritikal."}' \
-                ${discordWebhook}
+            }
+            post {
+                success {
+                    sh """
+                    curl -X POST -H "Content-Type: application/json" \
+                    -d '{"content": "✅ Stage: Trivy Scan berhasil. Tidak ditemukan vulnerability kritikal."}' \
+                    ${discordWebhook}
                     """
                 }
                 failure {
-                sh """
-                curl -X POST -H "Content-Type: application/json" \
-                -d '{"content": "❌ Stage: Trivy Scan gagal. Terdapat vulnerability kritikal yang ditemukan!"}' \
-                ${discordWebhook}
-                """
+                    sh """
+                    curl -X POST -H "Content-Type: application/json" \
+                    -d '{"content": "❌ Stage: Trivy Scan gagal. Terdapat vulnerability kritikal yang ditemukan!"}' \
+                    ${discordWebhook}
+                    """
                 }
             }
         }
