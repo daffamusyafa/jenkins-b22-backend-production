@@ -50,7 +50,7 @@ pipeline {
                     sh """
                     ssh -o StrictHostKeyChecking=no ${server} << EOF
                     cd backend/${directory}
-                    trivy image ${image} .
+                    trivy image ${image}
                     exit
                     EOF
                     """
