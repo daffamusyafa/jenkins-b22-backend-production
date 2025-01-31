@@ -44,34 +44,27 @@ pipeline {
                 """
             }
         }
-        stage('SonarQube Analysis') {
+        stage('Trivy Scan') {
             steps {
-                withSonarQubeEnv('SonarQube') { // Ganti 'SonarQube' dengan nama server yang dikonfigurasi di Jenkins
-                    sh """
-                    sonar-scanner \
-                    -Dsonar.projectKey=wayshub-backend \
-                    -Dsonar.sources=./ \
-                    -Dsonar.host.url=http://localhost:9000 // Sesuaikan dengan URL server SonarQube Anda
-                    -Dsonar.login=YOUR_TOKEN_HERE
-                    """
-                }
                 sh """
-                curl -X POST -H "Content-Type: application/json" \
-                -d '{"content": "✅ Stage: SonarQube Analysis berhasil."}' \
-                ${discordWebhook}
+                trivy image --exit-code 1 --severity HIGH,CRITICAL ${image}
                 """
             }
-        }
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 1, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+            post {
+                success {
+                    sh """
+                    curl -X POST -H "Content-Type: application/json" \
+                    -d '{"content": "✅ Stage: Trivy Scan berhasil. Tidak ditemukan vulnerability kritikal."}' \
+                    ${discordWebhook}
+                    """
                 }
-                sh """
-                curl -X POST -H "Content-Type: application/json" \
-                -d '{"content": "✅ Quality Gate passed! Kode Anda sudah memenuhi standar kualitas."}' \
-                ${discordWebhook}
-                """
+                failure {
+                    sh """
+                    curl -X POST -H "Content-Type: application/json" \
+                    -d '{"content": "❌ Stage: Trivy Scan gagal. Terdapat vulnerability kritikal yang ditemukan!"}' \
+                    ${discordWebhook}
+                    """
+                }
             }
         }
         stage('Deploy') {
